@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mailforensics-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_secure_prod_password
+      POSTGRES_DB: mailforensics
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mailforensics-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: mailforensics-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mailforensics-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile.backend
+    container_name: mailforensics-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres_secure_prod_password@postgres:5432/mailforensics
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PROCESSING_MODE=celery
+      - SECRET_KEY=mailforensics-defensive-secret-key-change-in-production!
+      - CORS_ORIGINS=["http://localhost:5173","http://localhost:80","http://frontend"]
+    volumes:
+      - mailforensics_storage:/app/storage
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mailforensics-net
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile.backend
+    container_name: mailforensics-celery-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres_secure_prod_password@postgres:5432/mailforensics
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PROCESSING_MODE=celery
+    volumes:
+      - mailforensics_storage:/app/storage
+    command: ["celery", "-A", "app.celery_app.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
+    networks:
+      - mailforensics-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: mailforensics-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "5173:80"
+    networks:
+      - mailforensics-net
+
+volumes:
+  postgres_data:
+  redis_data:
+  mailforensics_storage:
+
+networks:
+  mailforensics-net:
+    driver: bridge
