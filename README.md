@@ -6,19 +6,19 @@ MailForensics is an enterprise-grade defensive cybersecurity platform engineered
 
 ---
 
-## 🌐 Live Deployment & Project Links
+## 🌐 Live Deployment & Project URLs
 
-| Resource | URL | Details |
+| Resource | Link | Details |
 |---|---|---|
-| **Production Web Application** | [https://frontend-liard-ten-7u4fcxx4h0.vercel.app](https://frontend-liard-ten-7u4fcxx4h0.vercel.app) | Live React / Vite SPA deployed on Vercel |
-| **GitHub Repository** | [koppineeedi/MailForensics](https://github.com/koppineeedi/MailForensics-Email-Threat-Investigation-Phishing-Analysis-Platform) | Full source code, migrations, tests, and configurations |
-| **Vercel Inspect Dashboard** | [Vercel Project Dashboard](https://vercel.com/vamsilakshmisatyakoppineedi-4892s-projects/frontend/7yGqPteT799rXqhBqWSiRvh7zUED) | Build pipelines, deployments, and domain alias management |
+| **Production Web Application** | **[https://frontend-liard-ten-7u4fcxx4h0.vercel.app](https://frontend-liard-ten-7u4fcxx4h0.vercel.app)** | Live React 18 / Vite SPA deployed on Vercel |
+| **GitHub Repository** | **[koppineeedi/MailForensics](https://github.com/koppineeedi/MailForensics-Email-Threat-Investigation-Phishing-Analysis-Platform)** | Complete source code, Docker configs, migrations & tests |
+| **Vercel Inspect Dashboard** | **[Vercel Project Dashboard](https://vercel.com/vamsilakshmisatyakoppineedi-4892s-projects/frontend/7yGqPteT799rXqhBqWSiRvh7zUED)** | Deployment pipeline, runtime logs & domain routing |
 
 ---
 
 ## 🔐 Default Login Credentials
 
-The platform provides role-based access control (`ADMIN`, `ANALYST`, `VIEWER`). The following default accounts are pre-seeded in the database:
+The platform enforces Role-Based Access Control (`ADMIN`, `ANALYST`, `VIEWER`). The following default accounts are pre-seeded in the database:
 
 | Role | Email Address | Password | Permissions & Scope |
 |---|---|---|---|
@@ -26,9 +26,9 @@ The platform provides role-based access control (`ADMIN`, `ANALYST`, `VIEWER`). 
 | **SOC Analyst** | `analyst@mailforensics.local` | `Analyst@123456` | Email triage, evidence inspection, case notes, verdicts, and report generation |
 
 ### Self-Registration & First-Run Elevation
-- **First Account Auto-Elevation**: If starting on a fresh database instance, the **very first user** to register via the web UI is automatically granted the **`ADMIN`** role.
-- **Subsequent Accounts**: Additional users can register as **`ANALYST`** or **`VIEWER`** directly from the login/register screen.
-- **Database Seeding**: To re-seed or verify default accounts programmatically, run:
+- **First Account Auto-Elevation**: When launching with a fresh database instance, the **very first user** to register through the web interface is automatically granted the **`ADMIN`** role.
+- **Subsequent Accounts**: Additional analysts can register directly as **`ANALYST`** or **`VIEWER`** from the login page.
+- **Automated Seeding Script**: To initialize or re-seed default accounts programmatically, execute:
   ```bash
   cd backend
   python -m app.seed
@@ -37,25 +37,137 @@ The platform provides role-based access control (`ADMIN`, `ANALYST`, `VIEWER`). 
 ---
 
 ## Table of Contents
-1. [What MailForensics Does](#what-mailforensics-does)
-2. [Why MailForensics Exists](#why-mailforensics-exists)
-3. [System Architecture](#system-architecture)
-4. [Email Analysis Workflow](#email-analysis-workflow)
-5. [Authentication Analysis (SPF, DKIM, DMARC)](#authentication-analysis)
-6. [URL Analysis Engine](#url-analysis-engine)
-7. [Safe Attachment Analysis](#safe-attachment-analysis)
-8. [Native YARA Pattern Matching](#native-yara-pattern-matching)
-9. [Threat Intelligence Integration](#threat-intelligence-integration)
-10. [Explainable Risk Engine](#explainable-risk-engine)
-11. [Case Management & Incident Response](#case-management)
-12. [STIX 2.1 Threat Intelligence Bundles](#stix-21-threat-intelligence-bundles)
-13. [Operational Reality & Status Declarations](#operational-reality--status-declarations)
-14. [Testing & Verification](#testing--verification)
-15. [Quick Start & Setup Guide](#quick-start--setup-guide)
+1. [System Architecture](#1-system-architecture)
+2. [Forensic Investigation Flowcharts](#2-forensic-investigation-flowcharts)
+   - [End-to-End Analysis Pipeline](#end-to-end-analysis-pipeline)
+   - [System Architecture & Deployment Topology](#system-architecture--deployment-topology)
+   - [Authentication & RBAC Flow](#authentication--rbac-flow)
+3. [What MailForensics Does](#3-what-mailforensics-does)
+4. [Why MailForensics Exists](#4-why-mailforensics-exists)
+5. [Authentication Analysis (SPF, DKIM, DMARC)](#5-authentication-analysis)
+6. [URL Analysis Engine](#6-url-analysis-engine)
+7. [Safe Attachment Analysis](#7-safe-attachment-analysis)
+8. [Native YARA Pattern Matching](#8-native-yara-pattern-matching)
+9. [Threat Intelligence Integration](#9-threat-intelligence-integration)
+10. [Explainable Risk Engine](#10-explainable-risk-engine)
+11. [Case Management & Incident Response](#11-case-management)
+12. [STIX 2.1 Threat Intelligence Bundles](#12-stix-21-threat-intelligence-bundles)
+13. [Operational Reality & Status Declarations](#13-operational-reality--status-declarations)
+14. [Testing & Verification](#14-testing--verification)
+15. [Quick Start & Setup Guide](#15-quick-start--setup-guide)
 
 ---
 
-## 1. What MailForensics Does
+## 1. System Architecture
+- **Backend**: Python 3.10+, FastAPI, SQLAlchemy, Pydantic, Pytest, WebSockets, ReportLab, native `yara-python`.
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide Icons, Recharts.
+- **Database**: SQLite (default local development) / PostgreSQL (production containerized), 23 UUID-keyed relational models.
+- **Real-Time Engine**: FastAPI WebSockets delivering real backend events step-by-step to the UI.
+- **Task Scheduling / Workers**: Celery + Redis for asynchronous deep analysis and provider polling.
+
+---
+
+## 2. Forensic Investigation Flowcharts
+
+### End-to-End Analysis Pipeline
+
+```mermaid
+flowchart TD
+    A["Raw .eml Upload / RFC Text"] --> B["RFC Parser & MIME Deconstructor"]
+    B --> C["Header Extraction & Validation"]
+    B --> D["Body & Content Analysis"]
+    B --> E["Attachment Isolation"]
+
+    C --> C1["SPF / DKIM / DMARC Verifier"]
+    C --> C2["Received Hops & Transit Delay Engine"]
+    C --> C3["Sender & Return-Path Alignment"]
+
+    D --> D1["Isolated URL Extractor"]
+    D --> D2["Typosquatting & Punycode Engine"]
+    D --> D3["Native YARA Body Scanner"]
+
+    E --> E1["SHA-256 / SHA-1 / MD5 Hasher"]
+    E --> E2["Archive Zip-Bomb Safety Guard"]
+    E --> E3["Native YARA Attachment Scanner"]
+
+    C1 & C2 & C3 & D1 & D2 & D3 & E1 & E2 & E3 --> F["Evidence Correlator & Phishing Rules"]
+    F --> G["External Threat Intel (VirusTotal, OTX, AbuseIPDB)"]
+    G --> H["Evidence-Based Risk Scoring Engine (0-100)"]
+
+    H --> I["SOC Analyst Workbench & Verdict"]
+    I --> J["Case Management & Incident Timeline"]
+    I --> K["Executive PDF / JSON / STIX 2.1 Export"]
+```
+
+---
+
+### System Architecture & Deployment Topology
+
+```mermaid
+flowchart LR
+    subgraph Client ["Frontend (Cloud Deployed)"]
+        UI["React 18 + Vite + Tailwind"]
+        Vercel["Vercel Production Edge<br/>frontend-liard-ten-7u4fcxx4h0.vercel.app"]
+    end
+
+    subgraph API ["Backend API Gateway"]
+        FastAPI["FastAPI REST & WebSockets"]
+        Auth["JWT & RBAC Middleware"]
+    end
+
+    subgraph Workers ["Task Execution"]
+        Celery["Celery Distributed Workers"]
+        Redis["Redis Message Broker"]
+    end
+
+    subgraph Engines ["Forensic Engines"]
+        YARA["Native YARA v4.5.4 C-Extension"]
+        DNS["Live / Passive DNS Resolvers"]
+        Hasher["Cryptographic Hashers"]
+    end
+
+    subgraph Data ["Persistence Layer"]
+        DB[("PostgreSQL / SQLite")]
+        Storage["Isolated Storage (/storage/uploads)"]
+    end
+
+    UI -->|HTTPS / WSS| FastAPI
+    FastAPI --> Auth
+    FastAPI -->|Async Tasks| Redis
+    Redis --> Celery
+    FastAPI & Celery --> Engines
+    FastAPI & Celery --> DB
+    FastAPI & Celery --> Storage
+```
+
+---
+
+### Authentication & RBAC Flow
+
+```mermaid
+flowchart TD
+    User(["Analyst / Admin"]) --> AuthPage{"Login or Register"}
+    
+    AuthPage -->|Register| CheckCount{"Is First User?"}
+    CheckCount -->|Yes| ElevateAdmin["Role: ADMIN (Auto-elevated)"]
+    CheckCount -->|No| SelectRole["Role: ANALYST or VIEWER"]
+    
+    ElevateAdmin & SelectRole --> HashPass["Bcrypt Hash & Store (SQLAlchemy)"]
+    HashPass --> IssueJWT["Issue Signed JWT Bearer Token"]
+    
+    AuthPage -->|Login| VerifyCreds["Bcrypt Verify Password"]
+    VerifyCreds -->|Valid| IssueJWT
+    VerifyCreds -->|Invalid| LogFail["Audit Log: USER_LOGIN_FAILED"]
+    
+    IssueJWT --> Endpoints{"SOC Endpoint Access"}
+    Endpoints -->|ADMIN| FullAccess["Full Admin, Audits, YARA Upload, Cases"]
+    Endpoints -->|ANALYST| TriageAccess["Triage, Verdicts, Notes, Reports"]
+    Endpoints -->|VIEWER| ReadOnly["Read-Only Forensic View"]
+```
+
+---
+
+## 3. What MailForensics Does
 MailForensics automates the complex, multi-stage triage process required when investigating suspicious emails:
 - **RFC Email Ingestion**: Accepts `.eml` uploads, raw message text, and header strings.
 - **Header Inconsistency Detection**: Detects spoofing indicators such as `From` vs `Reply-To` mismatches, `From` vs `Return-Path` mismatches, and `Message-ID` anomalies.
@@ -70,48 +182,8 @@ MailForensics automates the complex, multi-stage triage process required when in
 
 ---
 
-## 2. Why MailForensics Exists
+## 4. Why MailForensics Exists
 In high-velocity SOC environments, phishing remains the primary initial access vector. Analysts must rapidly distinguish benign communications from targeted social engineering attacks. MailForensics provides an evidence-based, explainable investigation workbench that prioritizes analyst control and eliminates black-box guesswork.
-
----
-
-## 3. System Architecture
-- **Backend**: Python 3.10+, FastAPI, SQLAlchemy, Pydantic, Pytest, WebSockets, ReportLab, native `yara-python`.
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide Icons, Recharts.
-- **Database**: SQLite (default local development) / PostgreSQL (production containerized), 23 UUID-keyed relational models.
-- **Real-Time Engine**: FastAPI WebSockets delivering real backend events step-by-step to the UI.
-- **Task Scheduling / Workers**: Celery + Redis for asynchronous deep analysis and provider polling.
-
----
-
-## 4. Email Analysis Workflow
-```
-   Ingest .eml / Raw RFC
-             ↓
-        Safe Parsing
-             ↓
-      Header Analysis
-             ↓
-   Received Chain Ordering
-             ↓
-    SPF / DKIM / DMARC
-             ↓
-   Sender & Domain Analysis
-             ↓
-       URL Extraction
-             ↓
-    Attachment Analysis
-             ↓
-   YARA Detection Engine
-             ↓
-   Phishing Rules Consolidation
-             ↓
-     Threat Intel Status
-             ↓
-   Explainable Risk Score
-             ↓
-    Analyst Verdict & PDF / STIX 2.1
-```
 
 ---
 
