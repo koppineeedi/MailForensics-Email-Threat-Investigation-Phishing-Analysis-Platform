@@ -4,21 +4,55 @@ import {
   DashboardStats, RelationshipGraph, EmailComparisonResult, AuditLog, YaraRule, SystemStatus
 } from '../types';
 
+export const getApiBaseUrl = (): string => {
+  return localStorage.getItem('mailforensics_api_url') || ((import.meta as any).env?.VITE_API_URL as string) || '';
+};
+
+export const setApiBaseUrl = (url: string): void => {
+  if (url && url.trim()) {
+    localStorage.setItem('mailforensics_api_url', url.trim().replace(/\/+$/, ''));
+  } else {
+    localStorage.removeItem('mailforensics_api_url');
+  }
+};
+
 const api = axios.create({
-  baseURL: ((import.meta as any).env?.VITE_API_URL as string) || '',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Request interceptor to attach JWT token
+// Request interceptor to attach JWT token and ensure latest baseURL
 api.interceptors.request.use((config) => {
+  const currentBase = getApiBaseUrl();
+  if (currentBase) {
+    config.baseURL = currentBase;
+  }
   const token = localStorage.getItem('access_token');
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+// Response interceptor to catch HTML responses returned when backend is unreachable
+api.interceptors.response.use(
+  (response) => {
+    if (typeof response.data === 'string' && (response.data.includes('<!DOCTYPE html>') || response.data.includes('<html'))) {
+      const err: any = new Error('BACKEND_UNREACHABLE_HTML');
+      err.isBackendUnreachable = true;
+      return Promise.reject(err);
+    }
+    return response;
+  },
+  (error) => {
+    if (!error.response || (typeof error.response.data === 'string' && error.response.data.includes('<!DOCTYPE html>'))) {
+      error.isBackendUnreachable = true;
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const authAPI = {
   login: async (credentials: any) => {
