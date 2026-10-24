@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: mailforensics-backend
+    runtime: docker
+    dockerfilePath: Dockerfile
+    dockerContext: backend
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: APP_NAME
+        value: MailForensics
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:///./mailforensics.db
+      - key: PROCESSING_MODE
+        value: local
+      - key: ENABLE_LIVE_DNS_LOOKUPS
+        value: "true"
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"

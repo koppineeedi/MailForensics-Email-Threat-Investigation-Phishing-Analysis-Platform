@@ -335,8 +335,18 @@ docker compose up -d
 ```
 The Docker stack spins up PostgreSQL, Redis, Celery Worker, FastAPI backend (with auto-applied Alembic migrations), and Nginx-served React frontend on isolated network `mailforensics-net`.
 
+### Backend Cloud Deployment (Render / Docker):
+To host the live Python FastAPI backend in the cloud for free using Render:
+1. Go to **[Render.com](https://render.com)** and sign in with GitHub.
+2. Click **New +** > **Blueprint**.
+3. Select your repository: `koppineeedi/MailForensics-Email-Threat-Investigation-Phishing-Analysis-Platform`.
+4. Render automatically reads [`render.yaml`](file:///c:/Users/HP/OneDrive/Desktop/New%20folder/render.yaml) and builds the FastAPI Docker container with native YARA C-extensions.
+5. Once deployed, Render provides a public URL (e.g. `https://mailforensics-backend.onrender.com`).
+6. Set this URL in your Vercel frontend under **Project Settings > Environment Variables > `VITE_API_URL`** (or paste it directly in the live login page under "Backend API Server Settings").
+
 ### Frontend Cloud Deployment (Vercel):
 The frontend is pre-configured for Vercel with single-page application (SPA) routing:
+- **Production URL**: [https://frontend-liard-ten-7u4fcxx4h0.vercel.app](https://frontend-liard-ten-7u4fcxx4h0.vercel.app)
 - **Build Command**: `tsc && vite build`
 - **Output Directory**: `dist`
 - **Environment Variable**: `VITE_API_URL` (Set to your live FastAPI backend endpoint)
