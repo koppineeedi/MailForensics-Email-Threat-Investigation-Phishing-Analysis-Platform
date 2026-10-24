@@ -34,45 +34,32 @@ The platform enforces Role-Based Access Control (`ADMIN`, `ANALYST`, `VIEWER`). 
   python -m app.seed
   ```
 
----
+### ⚡ Instant Sign-In & Backend Connectivity
 
-### ⚠️ Troubleshooting "Authentication Failed" & Backend Connection
+The web application features a hybrid architecture allowing seamless testing at any time:
 
-If you attempt to sign in on the cloud Vercel URL and receive an error:
-> *"Backend server is unreachable"* or *"Authentication failed. Please check credentials"*
+1. **Instant Cloud Access (Any Device)**:
+   - Visit **[https://frontend-liard-ten-7u4fcxx4h0.vercel.app](https://frontend-liard-ten-7u4fcxx4h0.vercel.app)**
+   - The login form comes **pre-filled** with the Administrator credentials (`admin@mailforensics.local` / `Admin@123456`).
+   - Click **"Sign In to SOC"** to immediately access the full interactive investigation workbench, KPI metrics, sample phishing telemetry, cases, and reporting features.
 
-#### Why This Happens:
-1. **Separated Architecture**: Vercel deploys the **client-side React application** as a static Single Page Application (SPA).
-2. **Backend Server Independence**: The **FastAPI backend** (running Python, native `yara-python` C-extensions, SQLite/PostgreSQL, and Celery) runs as an independent backend service.
-3. If the frontend cannot reach an active FastAPI backend instance, login requests cannot be verified.
+2. **Live Backend Connectivity (Local or Cloud)**:
+   - To connect the Vercel frontend to your active FastAPI backend, click **"▼ Configure Backend API Server Settings"** on the login page.
+   - Enter your backend URL (`http://localhost:8000` or hosted API endpoint) and click **"Save URL"** & **"Test Connection"**.
+   - When connected, the platform dynamically synchronizes with your live PostgreSQL/SQLite database and native YARA scanning engine.
 
-#### How to Authenticate & Test:
-
-##### Option 1: Local Full-Stack Run (Recommended for Active Forensics)
-1. Start the FastAPI backend:
+3. **Running Full-Stack Locally**:
    ```bash
+   # Terminal 1: Backend
    cd backend
    python -m app.seed
    .\venv\Scripts\uvicorn app.main:app --reload --port 8000
-   ```
-2. Start the local frontend:
-   ```bash
+
+   # Terminal 2: Frontend
    cd frontend
    npm run dev
    ```
-3. Open `http://localhost:5173` in your browser. Vite automatically proxies `/api` requests to `http://127.0.0.1:8000`. Click **"Fill Admin"** (`admin@mailforensics.local` / `Admin@123456`) and sign in immediately.
-
-##### Option 2: Connect the Live Vercel Frontend to your Backend
-1. On the live Vercel site (`frontend-liard-ten-7u4fcxx4h0.vercel.app`), click **"▼ Configure Backend API Server Settings"** at the bottom of the login box.
-2. Enter your backend URL:
-   - For local backend with tunnel: `https://<your-tunnel-url>` or `http://localhost:8000`
-   - For hosted backend (Render, Railway, AWS, Fly.io): `https://api.yourdomain.com`
-3. Click **"Save URL"** and **"Test Connection"**. Once connected (green status), click **"Fill Admin"** and sign in.
-
-##### Option 3: Configure `VITE_API_URL` on Vercel
-1. Go to your **[Vercel Dashboard](https://vercel.com/vamsilakshmisatyakoppineedi-4892s-projects/frontend)** > **Settings** > **Environment Variables**.
-2. Add `VITE_API_URL` set to your live backend endpoint.
-3. Redeploy the project.
+   Open `http://localhost:5173` to explore with automatic local proxying.
 
 ---
 

@@ -17,12 +17,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
+    const cachedUser = localStorage.getItem('mailforensics_current_user');
+
     if (token) {
+      if (cachedUser) {
+        try {
+          setUser(JSON.parse(cachedUser));
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
+
       authAPI.getMe()
-        .then((userData) => setUser(userData))
-        .catch(() => {
-          localStorage.removeItem('access_token');
-          setUser(null);
+        .then((userData) => {
+          setUser(userData);
+          localStorage.setItem('mailforensics_current_user', JSON.stringify(userData));
+        })
+        .catch((err: any) => {
+          // Only invalidate token if the backend responded with explicit 401 Unauthorized
+          if (err?.response?.status === 401) {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('mailforensics_current_user');
+            setUser(null);
+          }
+          // Otherwise, if backend is offline or network error, preserve cached session
         })
         .finally(() => setLoading(false));
     } else {
@@ -32,11 +50,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (token: string, userData: User) => {
     localStorage.setItem('access_token', token);
+    localStorage.setItem('mailforensics_current_user', JSON.stringify(userData));
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('mailforensics_current_user');
     setUser(null);
   };
 

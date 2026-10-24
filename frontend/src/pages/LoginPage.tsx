@@ -7,8 +7,8 @@ import axios from 'axios';
 
 export const LoginPage: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@mailforensics.local');
+  const [password, setPassword] = useState('Admin@123456');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('ANALYST');
   const [error, setError] = useState('');
