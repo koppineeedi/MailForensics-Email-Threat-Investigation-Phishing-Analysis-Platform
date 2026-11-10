@@ -72,7 +72,7 @@ The web application features a hybrid architecture allowing seamless testing at 
 3. [What MailForensics Does](#3-what-mailforensics-does)
 4. [Why MailForensics Exists](#4-why-mailforensics-exists)
 5. [Authentication Analysis (SPF, DKIM, DMARC)](#5-authentication-analysis)
-6. [URL Analysis Engine](#6-url-analysis-engine)
+6. [URL Analysis Engine & URL Intelligence Module](#6-url-analysis-engine--url-intelligence-module)
 7. [Safe Attachment Analysis](#7-safe-attachment-analysis)
 8. [Native YARA Pattern Matching](#8-native-yara-pattern-matching)
 9. [Threat Intelligence Integration](#9-threat-intelligence-integration)
@@ -222,10 +222,33 @@ MailForensics evaluates email authentication protocols against header evidence:
 
 ---
 
-## 6. URL Analysis Engine
-Extracted URLs are parsed strictly in-memory using URL string utilities.
-- **Zero Browser Visiting**: Extracted URLs are **NEVER** automatically visited in a real browser.
-- **Indicators Detected**: IP-based hosts (`http://192.168.1.50/...`), suspicious TLDs (`.top`, `.xyz`, `.click`), unencrypted HTTP, and credential keywords (`login`, `verify`, `password`).
+## 6. URL Analysis Engine & URL Intelligence Module
+
+### 🔗 Standalone URL Intelligence (New Module)
+MailForensics includes a dedicated **URL Intelligence** module accessible from the sidebar navigation. Analyze any suspicious URL for phishing indicators using **12 static heuristic detectors** — with **zero network requests** made to the analyzed URL (**SSRF prevention by design**).
+
+**Risk Classification:** `LOW (0–19)` → `GUARDED (20–39)` → `SUSPICIOUS (40–59)` → `HIGH (60–79)` → `CRITICAL (80–100)`
+
+**12 Phishing Detectors:**
+| # | Detector | What It Catches |
+|---|---|---|
+| 1 | **@ Symbol User-Info Trick** | Host spoofing via @ in netloc (e.g. `legit.com@evil.com`) |
+| 2 | **Excessive URL Length** | URLs > 500 characters used to confuse users |
+| 3 | **IP-Based Hostname** | Raw IPs instead of domains (bypass DNS reputation) |
+| 4 | **Excessive Subdomain Depth** | 4+ levels (e.g. `paypal.secure.update.evil.com`) |
+| 5 | **Punycode / IDN Homograph** | `xn--` encoded lookalike domains |
+| 6 | **Unencrypted HTTP** | Missing TLS on login/payment pages |
+| 7 | **Suspicious TLD** | 25+ abused TLDs (`.top`, `.xyz`, `.click`, `.tk`, etc.) |
+| 8 | **Credential Harvesting Keywords** | `login`, `verify`, `password`, `signin`, `confirm`, etc. |
+| 9 | **Brand Impersonation** | 23 major brands in paths/subdomains (PayPal, Amazon, Microsoft…) |
+| 10 | **URL Shortener** | 15+ known shorteners that hide true destinations |
+| 11 | **URL Encoding Obfuscation** | High percent-encoding density to bypass filters |
+| 12 | **High-Entropy Subdomain** | DGA / algorithmically-generated random subdomains |
+
+### Email URL Extraction (Existing)
+Extracted URLs from email bodies are parsed strictly in-memory:
+- **Zero Browser Visiting**: URLs are **NEVER** automatically visited
+- **Indicators Detected**: IP-based hosts, suspicious TLDs, unencrypted HTTP, and credential keywords
 
 ---
 
