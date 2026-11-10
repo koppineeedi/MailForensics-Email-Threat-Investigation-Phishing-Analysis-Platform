@@ -5,7 +5,7 @@ from app.config import settings
 from app.database import engine, Base, get_db
 from app.models.models import EmailSample, PhishingFinding, AttachmentFinding, URLItem, EmailCase, AuthenticationResult
 from app.schemas.schemas import DashboardStats, EmailSampleSummary
-from app.api import auth, emails, headers, urls, attachments, cases, relationships, threat_intel, reports, audit, yara, websocket, url_intelligence
+from app.api import auth, emails, headers, urls, attachments, cases, relationships, threat_intel, reports, audit, yara, websocket, url_intelligence, analytics
 from app.api.deps import get_current_user
 
 # Create database tables
@@ -40,6 +40,7 @@ app.include_router(audit.router)
 app.include_router(yara.router)
 app.include_router(websocket.router)
 app.include_router(url_intelligence.router)
+app.include_router(analytics.router)
 
 import os
 from datetime import datetime, timezone

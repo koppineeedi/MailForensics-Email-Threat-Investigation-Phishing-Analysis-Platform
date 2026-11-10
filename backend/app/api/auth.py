@@ -16,9 +16,16 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered.")
     
-    # If first user, make ADMIN, else ANALYST
+    # Security fix: only allow ANALYST or VIEWER self-registration.
+    # First-user auto-elevation to ADMIN is preserved for initial setup only.
+    # ADMIN role cannot be self-claimed on a populated database.
     user_count = db.query(User).count()
-    role = "ADMIN" if user_count == 0 else user_in.role
+    if user_count == 0:
+        role = "ADMIN"  # First-ever user becomes admin (initial setup)
+    else:
+        # Clamp role to safe values; reject any attempt to self-assign ADMIN
+        allowed_roles = {"ANALYST", "VIEWER"}
+        role = user_in.role if user_in.role in allowed_roles else "ANALYST"
 
     user = User(
         email=user_in.email.lower(),

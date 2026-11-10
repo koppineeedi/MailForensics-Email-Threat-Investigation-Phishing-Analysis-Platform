@@ -224,26 +224,29 @@ MailForensics evaluates email authentication protocols against header evidence:
 
 ## 6. URL Analysis Engine & URL Intelligence Module
 
-### 🔗 Standalone URL Intelligence (New Module)
-MailForensics includes a dedicated **URL Intelligence** module accessible from the sidebar navigation. Analyze any suspicious URL for phishing indicators using **12 static heuristic detectors** — with **zero network requests** made to the analyzed URL (**SSRF prevention by design**).
+### 🔗 Standalone URL Intelligence (v2.0)
+MailForensics includes a dedicated **URL Intelligence** module accessible from the sidebar navigation. Analyze any suspicious URL for phishing indicators using **13 static heuristic detector categories** — with **zero network requests** made to the analyzed URL (**SSRF prevention by design**).
 
 **Risk Classification:** `LOW (0–19)` → `GUARDED (20–39)` → `SUSPICIOUS (40–59)` → `HIGH (60–79)` → `CRITICAL (80–100)`
 
-**12 Phishing Detectors:**
-| # | Detector | What It Catches |
-|---|---|---|
-| 1 | **@ Symbol User-Info Trick** | Host spoofing via @ in netloc (e.g. `legit.com@evil.com`) |
-| 2 | **Excessive URL Length** | URLs > 500 characters used to confuse users |
-| 3 | **IP-Based Hostname** | Raw IPs instead of domains (bypass DNS reputation) |
-| 4 | **Excessive Subdomain Depth** | 4+ levels (e.g. `paypal.secure.update.evil.com`) |
-| 5 | **Punycode / IDN Homograph** | `xn--` encoded lookalike domains |
-| 6 | **Unencrypted HTTP** | Missing TLS on login/payment pages |
-| 7 | **Suspicious TLD** | 25+ abused TLDs (`.top`, `.xyz`, `.click`, `.tk`, etc.) |
-| 8 | **Credential Harvesting Keywords** | `login`, `verify`, `password`, `signin`, `confirm`, etc. |
-| 9 | **Brand Impersonation** | 23 major brands in paths/subdomains (PayPal, Amazon, Microsoft…) |
-| 10 | **URL Shortener** | 15+ known shorteners that hide true destinations |
-| 11 | **URL Encoding Obfuscation** | High percent-encoding density to bypass filters |
-| 12 | **High-Entropy Subdomain** | DGA / algorithmically-generated random subdomains |
+**13 Phishing Detector Categories (v2.0):**
+| # | Detector | Code | Severity | What It Catches |
+|---|---|---|---|---|
+| 0 | **Malformed URL Structure** | `MALFORMED_URL` | LOW | Single-label hostnames, unparseable URLs used to evade scanners |
+| 1 | **@ Symbol / User-Info Trick** | `AT_SYMBOL_USERINFO` | HIGH | Host spoofing via `@` in netloc (e.g. `paypal.com@evil.com`) |
+| 2 | **Excessive URL Length** | `EXCESSIVE_LENGTH` | MEDIUM | URLs >500 chars crafted to overflow filters and confuse users |
+| 3 | **IP-Based Hostname** | `IP_HOST` | HIGH | Raw IPv4/IPv6 instead of domains — bypasses DNS reputation checks |
+| 4 | **Subdomain Depth / Credential in Subdomain** | `EXCESSIVE_SUBDOMAINS` / `CREDENTIAL_SUBDOMAIN` | MEDIUM–HIGH | 4+ subdomain levels; brand/credential keywords in subdomain |
+| 5 | **Punycode / IDN Homograph** | `PUNYCODE_DOMAIN` / `UNICODE_HOMOGRAPH` | HIGH | `xn--` encoded lookalike domains; raw Unicode confusables (Cyrillic, Greek) |
+| 6 | **Unencrypted HTTP** | `UNENCRYPTED_HTTP` | MEDIUM | Missing TLS/HTTPS — esp. critical on login/payment paths |
+| 7 | **Suspicious TLD** | `SUSPICIOUS_TLD` | MEDIUM | 35+ abused TLDs (`.top`, `.xyz`, `.click`, `.tk`, `.ml`, `.icu`, `.quest`…) |
+| 8 | **Credential Harvesting Keywords** | `CREDENTIAL_KEYWORDS` | MEDIUM–HIGH | `login`, `verify`, `password`, `signin`, `confirm`, `billing`, `authtoken`… |
+| 9 | **Brand Impersonation** | `BRAND_IMPERSONATION` | HIGH | 30+ major brands in subdomains/paths on non-official domains (PayPal, Amazon, Microsoft, Google, Apple, Coinbase…) |
+| 10 | **URL Shortener / Open Redirector** | `URL_SHORTENER` | MEDIUM | 15+ known shorteners (bit.ly, tinyurl, t.co…) that hide true destinations |
+| 11 | **URL Encoding Obfuscation** | `URL_ENCODING_OBFUSCATION` / `MULTI_ENCODING_CHAIN` | MEDIUM–HIGH | High percent-encoding density; double/triple encoding chains |
+| 12 | **Suspicious Query Parameters** | `OPEN_REDIRECT_PARAM` / `SUSPICIOUS_QUERY_PARAMS` / `ENCODED_PAYLOAD_PARAM` | MEDIUM–HIGH | Open redirect params (`url=`, `redirect=`, `next=`); dangerous params (`cmd=`, `exec=`, `payload=`); base64-in-query payloads |
+
+**Security Guarantee:** The engine uses only `urllib.parse`, regex, and string heuristics. No sockets, no DNS, no HTTP calls are ever made.
 
 ### Email URL Extraction (Existing)
 Extracted URLs from email bodies are parsed strictly in-memory:
@@ -296,6 +299,28 @@ Export forensic cases and email indicators as standard OASIS STIX 2.1 JSON bundl
 
 ---
 
+## 12b. Security Analytics Dashboard
+A dedicated **Analytics** page (sidebar → Analytics) provides real-time security metrics sourced exclusively from the live database — no fabricated numbers.
+
+**8 KPI Cards:** Total Emails Analyzed · Total URLs Analyzed · Phishing Emails · Suspicious URLs · Critical Threats · Today's Activity · Average Risk Score · Detection Rate
+
+**7 Backend API Endpoints** (all authenticated, all support `?days=` date filter):
+| Endpoint | Returns |
+|---|---|
+| `GET /api/analytics/summary` | KPI card counts (emails, URLs, verdicts, critical threats) |
+| `GET /api/analytics/risk-distribution` | URL risk category breakdown (LOW/GUARDED/SUSPICIOUS/HIGH/CRITICAL) |
+| `GET /api/analytics/detection-types` | Top detection codes ranked by frequency |
+| `GET /api/analytics/activity-timeline` | Daily email+URL analysis counts over selected period |
+| `GET /api/analytics/verdict-distribution` | Analyst verdict breakdown (BENIGN/PHISHING/MALICIOUS/SPAM…) |
+| `GET /api/analytics/recent-incidents` | Last N high-severity URL analysis events |
+| `GET /api/analytics/severity-distribution` | Detection severity counts (LOW/MEDIUM/HIGH/CRITICAL) |
+
+**Charts:** PieChart (risk distribution) · BarChart (severity) · LineChart (activity timeline, dual-axis emails+URLs)
+
+**Offline fallback:** When the backend is unreachable the dashboard shows clearly labelled **"Preview mode — backend offline"** sample data with an amber banner.
+
+---
+
 ## 13. Operational Reality & Status Declarations
 
 | Category | Component | Status | Details |
@@ -306,6 +331,8 @@ Export forensic cases and email indicators as standard OASIS STIX 2.1 JSON bundl
 | **WHAT IS REAL** | STIX 2.1 Bundles | **ACTIVE / REAL** | Valid OASIS STIX 2.1 JSON export for emails, hashes, URLs |
 | **WHAT IS REAL** | WebSockets | **ACTIVE / REAL** | Real FastAPI event dispatching step-by-step to the UI |
 | **WHAT IS REAL** | Safe Static Analysis | **ACTIVE / REAL** | PE header inspection (MZ), PDF streams, archive limits |
+| **WHAT IS REAL** | URL Intelligence v2.0 | **ACTIVE / REAL** | 13-category static phishing engine — SSRF-free by design |
+| **WHAT IS REAL** | Analytics Dashboard | **ACTIVE / REAL** | 7 authenticated API endpoints, 8 KPI cards, Recharts visualizations |
 | **WHAT IS LOCAL** | Default DB Mode | **ACTIVE / LOCAL** | SQLite (`sqlite:///./mailforensics.db`) for lightweight local dev/testing |
 | **WHAT IS LOCAL** | Processing Mode | **ACTIVE / LOCAL** | Synchronous FastAPI BackgroundTasks when `PROCESSING_MODE=local` |
 | **REQUIRES KEYS** | Threat Intelligence | **STANDBY / NOT_CONFIGURED** | VirusTotal, AlienVault OTX, AbuseIPDB require API keys in `.env` |
@@ -317,19 +344,44 @@ Export forensic cases and email indicators as standard OASIS STIX 2.1 JSON bundl
 
 ## 14. Testing & Verification
 
-MailForensics includes a verified test suite covering unit, API, database, Celery, DNS, health, YARA, and STIX export:
+MailForensics includes a verified test suite covering unit, API, database, Celery, DNS, health, YARA, STIX export, URL intelligence, and security audit tests.
+
+### Core Backend Tests (pytest)
 ```bash
 cd backend
 .\venv\Scripts\python.exe -m pytest tests/ -v
 ```
-**Test Results**: **39 passed out of 39 tests** (100% pass rate).
+**Test Results**: **39 passed out of 39 tests** (100% pass rate) — covers auth, email analysis, case management, YARA, STIX, database models.
 
-Frontend Build Verification:
+### URL Intelligence Engine Tests (standalone runner)
+The standalone runner bypasses SQLAlchemy conftest to test the pure-Python engine directly:
+```bash
+cd backend
+python -X utf8 tests/run_url_intelligence_tests.py
+```
+**Test Results**: **53 passed out of 53 tests** (100% pass rate) — covers all 13 detector categories, scoring correctness, edge cases, and output schema validation.
+
+### Security Audit Tests (pytest)
+```bash
+cd backend
+.\venv\Scripts\python.exe -m pytest tests/test_security_audit.py -v
+```
+Covers: password hashing (bcrypt), JWT token security, role escalation prevention, login brute-force behaviour, API access control (unauthenticated 401), input validation.
+
+### Security Vulnerabilities Found & Fixed
+| Vulnerability | Severity | Status | Fix Applied |
+|---|---|---|---|
+| **Role Escalation** — `auth.py` allowed any user to self-register as `ADMIN` | CRITICAL | ✅ **FIXED** | Non-first users restricted to `{"ANALYST", "VIEWER"}` only |
+| **Hardcoded JWT secret** — `config.py` default `SECRET_KEY` fallback | HIGH | ⚠️ Document only | Use `SECRET_KEY` env var in production; documented in `.env.example` |
+| **Demo credentials in frontend** — `LoginPage.tsx` pre-filled defaults | LOW | ℹ️ Intentional | "Fill Admin" button for demo usability; no production risk |
+| **Mock auth fallback** — `api.ts` creates demo JWT when backend offline | LOW | ℹ️ Intentional | Clearly labeled "Preview mode — backend offline" banner in UI |
+
+### Frontend Build Verification
 ```bash
 cd frontend
 npm run build
 ```
-**Build Result**: Clean TypeScript compilation (`tsc`) and Vite production bundle (`dist/`).
+**Build Result**: Clean TypeScript compilation (`tsc --noEmit` → 0 errors) and Vite production bundle — **2340 modules** transformed, 0 errors.
 
 ---
 

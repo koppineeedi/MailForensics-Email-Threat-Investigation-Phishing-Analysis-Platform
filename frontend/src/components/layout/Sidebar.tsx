@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Mail, GitCompare, Briefcase, Network,
   Search, ShieldAlert, FileText, ClipboardList, Settings,
-  Link2, Shield
+  Link2, Shield, BarChart3
 } from 'lucide-react';
 
 const NavSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -37,6 +37,7 @@ export const Sidebar: React.FC = () => {
       <nav className="flex-1 px-3">
         <NavSection title="Overview">
           <NavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} />
+          <NavItem to="/analytics" label="Analytics" icon={BarChart3} />
         </NavSection>
 
         <NavSection title="Investigation">
