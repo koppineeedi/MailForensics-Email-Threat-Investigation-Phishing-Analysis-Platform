@@ -13,7 +13,7 @@ export const RiskBadge: React.FC<RiskBadgeProps> = ({ category, score }) => {
       colorClasses = 'bg-emerald-950/70 text-emerald-400 border-emerald-800/60';
       break;
     case 'GUARDED':
-      colorClasses = 'bg-blue-950/70 text-blue-400 border-blue-800/60';
+      colorClasses = 'bg-yellow-950/70 text-yellow-400 border-yellow-800/60';
       break;
     case 'SUSPICIOUS':
       colorClasses = 'bg-amber-950/70 text-amber-400 border-amber-800/60';

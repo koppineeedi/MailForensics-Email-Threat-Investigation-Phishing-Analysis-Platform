@@ -17,6 +17,7 @@ import { ThreatIntelPage } from './pages/ThreatIntelPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { UrlIntelligencePage } from './pages/UrlIntelligencePage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -58,6 +59,7 @@ export const App: React.FC = () => {
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit" element={<AuditLogsPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="url-intelligence" element={<UrlIntelligencePage />} />
             </Route>
           </Routes>
         </Router>

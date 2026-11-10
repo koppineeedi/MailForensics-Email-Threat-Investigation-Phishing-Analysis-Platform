@@ -9,13 +9,23 @@ export default {
     extend: {
       colors: {
         soc: {
-          dark: '#0B0F17',
-          card: '#131B2A',
+          dark:   '#0B0F17',
+          card:   '#131B2A',
           border: '#1E293B',
           accent: '#0EA5E9',
-          muted: '#64748B',
-          text: '#F8FAFC'
+          muted:  '#64748B',
+          text:   '#F8FAFC'
+        },
+        risk: {
+          low:        '#10B981',
+          guarded:    '#EAB308',
+          suspicious: '#F59E0B',
+          high:       '#F97316',
+          critical:   '#F43F5E'
         }
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       }
     },
   },

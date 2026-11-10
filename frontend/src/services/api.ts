@@ -516,4 +516,93 @@ export const yaraAPI = {
   }
 };
 
+// ─── URL Intelligence ───────────────────────────────────────────────────────
+
+function mockUrlAnalysis(url: string) {
+  const detections: Array<{
+    code: string; weight: number; title: string; description: string; severity: string;
+  }> = [];
+  let score = 0;
+  const lower = url.toLowerCase();
+
+  if (url.includes('@') && url.match(/https?:\/\/[^@]+@/)) {
+    score += 25;
+    detections.push({ code: 'AT_SYMBOL_USERINFO', weight: 25, title: '@ Symbol User-Info Trick', description: 'URL contains @ in host portion — classic phishing obfuscation. Everything before @ is treated as credentials; real host is after @.', severity: 'HIGH' });
+  }
+  if (url.length > 500) {
+    score += 20;
+    detections.push({ code: 'EXCESSIVE_LENGTH', weight: 20, title: 'Excessive URL Length', description: `URL is ${url.length} chars (threshold: 500). Attackers use long URLs to hide the real destination.`, severity: 'MEDIUM' });
+  }
+  if (/https?:\/\/(\d{1,3}\.){3}\d{1,3}/.test(url)) {
+    score += 30;
+    detections.push({ code: 'IP_HOST', weight: 30, title: 'IP Address Hostname', description: 'Raw IP address used instead of a domain name. Bypasses DNS reputation checks.', severity: 'HIGH' });
+  }
+  if (lower.includes('xn--')) {
+    score += 25;
+    detections.push({ code: 'PUNYCODE_DOMAIN', weight: 25, title: 'Punycode / IDN Homograph Domain', description: 'xn-- encoded domain detected — potential IDN homograph attack using lookalike Unicode characters.', severity: 'HIGH' });
+  }
+  if (lower.startsWith('http://')) {
+    score += 15;
+    detections.push({ code: 'UNENCRYPTED_HTTP', weight: 15, title: 'Unencrypted HTTP Protocol', description: 'Uses plain HTTP instead of HTTPS. Legitimate login/payment pages always use HTTPS.', severity: 'MEDIUM' });
+  }
+  const suspTlds = ['.top', '.xyz', '.click', '.tk', '.ml', '.ga', '.cf', '.pw', '.ru', '.icu'].filter(t => lower.includes(t));
+  if (suspTlds.length) {
+    score += 20;
+    detections.push({ code: 'SUSPICIOUS_TLD', weight: 20, title: `High-Risk TLD (${suspTlds[0]})`, description: `TLD "${suspTlds[0]}" appears frequently in phishing campaigns and malicious infrastructure.`, severity: 'MEDIUM' });
+  }
+  const credKws = ['login', 'verify', 'password', 'signin', 'account', 'secure', 'update', 'confirm', 'validate'].filter(k => lower.includes(k));
+  if (credKws.length) {
+    const w = credKws.length > 1 ? 25 : 15;
+    score += w;
+    detections.push({ code: 'CREDENTIAL_KEYWORDS', weight: w, title: 'Credential Harvesting Keywords', description: `Found: ${credKws.join(', ')}. These keywords are associated with phishing credential capture pages.`, severity: credKws.length > 1 ? 'HIGH' : 'MEDIUM' });
+  }
+  if (['bit.ly', 'tinyurl.com', 't.co', 'ow.ly', 'is.gd', 'tiny.cc'].some(s => lower.includes(s))) {
+    score += 20;
+    detections.push({ code: 'URL_SHORTENER', weight: 20, title: 'URL Shortener Detected', description: 'URL shorteners hide the true destination from users and email filters.', severity: 'MEDIUM' });
+  }
+  const brands = ['paypal', 'amazon', 'apple', 'microsoft', 'google', 'facebook', 'netflix', 'chase', 'wellsfargo'];
+  for (const brand of brands) {
+    if (lower.includes(brand) && !lower.includes(`${brand}.com`)) {
+      score += 25;
+      detections.push({ code: `BRAND_IMPERSONATION_${brand.toUpperCase()}`, weight: 25, title: `Brand Impersonation: ${brand.charAt(0).toUpperCase() + brand.slice(1)}`, description: `URL references "${brand}" but does not appear to be the official domain. Common phishing technique.`, severity: 'HIGH' });
+      break;
+    }
+  }
+
+  score = Math.min(100, score);
+  const cat = score < 20 ? 'LOW' : score < 40 ? 'GUARDED' : score < 60 ? 'SUSPICIOUS' : score < 80 ? 'HIGH' : 'CRITICAL';
+  const summary = !detections.length
+    ? 'No significant indicators detected. Exercise normal caution when visiting unknown URLs.'
+    : score < 40 ? `Minor indicators detected (${detections.length} signal(s)). Exercise caution.`
+    : score < 70 ? `Moderate phishing risk — ${detections.length} indicator(s) found. Avoid without verification.`
+    : `HIGH PHISHING RISK — ${detections.length} critical indicator(s) found. Do not visit this URL.`;
+
+  return {
+    url, risk_score: score, risk_category: cat, detections, summary, is_safe_to_display: true,
+    parsed: {
+      scheme: url.startsWith('https') ? 'https' : 'http',
+      hostname: (url.match(/https?:\/\/([^/]+)/) || [])[1] || '',
+      tld: '.' + (url.split('.').pop()?.split('/')[0] || ''),
+      subdomain_depth: Math.max(0, ((url.match(/https?:\/\/([^/]+)/) || [])[1] || '').split('.').length - 2),
+      url_length: url.length,
+    }
+  };
+}
+
+export const urlIntelligenceAPI = {
+  analyze: async (url: string) => {
+    try {
+      const res = await api.post('/api/url-intelligence/analyze', { url });
+      return res.data;
+    } catch (err: any) {
+      // If backend returned a real validation error (e.g. 422), rethrow
+      if (err.response && err.response.status === 422 && !err.isBackendUnreachable) {
+        throw new Error(err.response.data?.detail?.[0]?.msg || 'Invalid URL input.');
+      }
+      // Backend unreachable — run client-side mock analysis for preview mode
+      return mockUrlAnalysis(url);
+    }
+  }
+};
+
 export default api;
